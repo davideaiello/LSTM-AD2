@@ -147,9 +147,9 @@ def plot_hist(anomaly_scores_norm, df_collision, df, plot_filename):
     plt.ylabel('Occurencies')
     plt.legend(loc='upper right')
     plt.title('Distribution')
-    plt.show()
     plot_filename = f"{plot_filename}.png"
     plt.savefig(plot_filename)
+    plt.show()
     return tot_anomalies
 
 def compute_anomaly_scores(model, dataloader, d):
@@ -197,7 +197,9 @@ def evaluation(model, pipeline):
         logging.info(f"Computing metrics on test set") 
         fpr, tpr, _ = compute_metrics(anomaly_scores_norm, df_test, df_collision, tot_anomalies)
         plt.title("Roc Curve")
-        plt.plot(fpr, tpr)
+        plt.plot(fpr, tpr, color="r")
+        plt.xlabel('FPR')
+        plt.ylabel('TPR')
         plt.savefig("Roc Curve.png")
         plt.show()
     
