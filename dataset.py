@@ -122,14 +122,19 @@ class TimeSeries(Dataset):
         self.l = prediction_length
 
     def __len__(self):
-        return self.X.shape[0] - (self.window_length - 1) - self.l
+        return self.X.shape[0] - (self.window_length - 1) - self.l-1
 
     def __getitem__(self, index):
         end_idx = index + self.window_length
-        x = self.X[index:end_idx]
-        y = self.X[end_idx:end_idx+self.l, :]
+        x = []
+        for p in range(self.l):
+            x.append(self.X[index + p : p + end_idx])
+        x = torch.cat([torch.unsqueeze(item, 0) for item in x], dim=0) # concatena mettendo la nuova dimensione, self.prediction_length, davanti
+        y = self.X[end_idx + self.l]
+        y = y.repeat(self.l)
         return x, y
 
+    
 
 
 

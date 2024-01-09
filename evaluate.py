@@ -150,13 +150,19 @@ def plot_hist(anomaly_scores_norm, df_collision, df):
     plt.show()
     return tot_anomalies
 
-def compute_anomaly_scores(model, dataloader):
+def compute_anomaly_scores(model, dataloader, d):
     errors = []
     for x, y in tqdm(dataloader):
+        y_preds = []
         if args.device == 'cuda':
             x, y = x.cuda(), y.cuda()
-        y_hat = model.forward(x)
-        e = torch.abs(y.reshape(*y_hat.shape) - y_hat)
+        for p in range(args.prediction_length):
+            x_w = x[:, p]
+            y_p = model.forward(x_w)
+            y_p = y_p[:, y_p.shape[1]-d*(p+1):y_p.shape[1]-d*p]
+            y_preds.append(y_p)
+        y_preds = torch.cat(y_preds, dim=1)
+        e = torch.abs(y - y_preds)
         errors.append(e)
     errors = torch.cat(errors)
     anomaly_scores = model.anomaly_scorer.forward(errors.mean(dim=1))
@@ -171,19 +177,19 @@ def evaluation(model, pipeline):
         logging.info(f"Computing threshold on a test set subset")   
         model.eval()
 
-        anomaly_scores_norm = compute_anomaly_scores(model, DataLoader_val)
+        anomaly_scores_norm = compute_anomaly_scores(model, DataLoader_val, X_collisions.shape[1])
         df_val = df_val[-anomaly_scores_norm.shape[0]:] 
         tot_anomalies = plot_hist(anomaly_scores_norm, df_collision, df_val)
         _, _, th = compute_metrics(anomaly_scores_norm, df_val, df_collision, tot_anomalies)
         
-        anomaly_scores_norm = compute_anomaly_scores(model, Dataloader_collisions)
+        anomaly_scores_norm = compute_anomaly_scores(model, Dataloader_collisions, X_collisions.shape[1])
         df_col = df_col[-anomaly_scores_norm.shape[0]:] 
         tot_anomalies = plot_hist(anomaly_scores_norm, df_collision, df_col)
         logging.info(f"Computing metrics on test set") 
         compute_metrics(anomaly_scores_norm, df_col, df_collision, tot_anomalies, th)
     else:
         Dataloader_collisions = return_dataloader(X_collisions) 
-        anomaly_scores_norm = compute_anomaly_scores(model, Dataloader_collisions)
+        anomaly_scores_norm = compute_anomaly_scores(model, Dataloader_collisions, X_collisions.shape[1])
         df_test = df_test[-anomaly_scores_norm.shape[0]:] 
         tot_anomalies = plot_hist(anomaly_scores_norm, df_collision, df_test)
         logging.info(f"Computing metrics on test set") 

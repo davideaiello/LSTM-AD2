@@ -57,13 +57,20 @@ logging.info("Estimating normal distribution...")
 
 errors = []
 for x, y in tqdm(DataLoader_val):
+    y_preds = []
     if args.device == 'cuda':
         x, y = x.cuda(), y.cuda()
-    y_hat = model.forward(x)
-    e = torch.abs(y.reshape(*y_hat.shape) - y_hat)
+    for p in range(args.prediction_length):
+        x_w = x[:, p]
+        y_p = model.forward(x_w)
+        y_p = y_p[:, y_p.shape[1]-(X_train.shape[1])*(p+1):y_p.shape[1]-(X_train.shape[1])*p]
+        y_preds.append(y_p)
+    y_preds = torch.cat(y_preds, dim=1)
+    e = torch.abs(y - y_preds)
     errors.append(e)
 model.anomaly_scorer.find_distribution(torch.cat(errors))
 model.save()
+
 
 logging.info("Testing the model...")
 evaluate.evaluation(model, pipeline)
