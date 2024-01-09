@@ -25,9 +25,8 @@ args = parser.parse_arguments()
 
 def read_folder_normal(dataset_folder, frequency):
     ROOTDIR_DATASET = dataset_folder
-    ROOTDIR_DATASET_NORMAL =os.path.join(ROOTDIR_DATASET, "normal")
-    filepaths_csv = [os.path.join(ROOTDIR_DATASET_NORMAL, f"rec{r}_20220811_rbtc_{1/frequency}s.csv") for r in [0, 2, 3, 4]]
-    filepaths_meta = [os.path.join(ROOTDIR_DATASET_NORMAL, f"rec{r}_20220811_rbtc_{1/frequency}s.metadata") for r in [0, 2, 3, 4]]
+    filepaths_csv = [os.path.join(ROOTDIR_DATASET, f"rec{r}_20220811_rbtc_{1/frequency}s.csv") for r in [0, 2, 3, 4]]
+    # filepaths_meta = [os.path.join(ROOTDIR_DATASET_NORMAL, f"rec{r}_20220811_rbtc_{1/frequency}s.metadata") for r in [0, 2, 3, 4]]
 
     dfs = [pd.read_csv(filepath_csv, sep=";") for filepath_csv in filepaths_csv]
     df = pd.concat(dfs)                           
@@ -45,8 +44,7 @@ def read_folder_normal(dataset_folder, frequency):
 
 def read_folder_collisions(dataset_folder, frequency):
     ROOTDIR_DATASET = dataset_folder
-    ROOTDIR_DATASET_ANOMALY =os.path.join(ROOTDIR_DATASET, "collisions")
-    collisions = pd.read_excel(os.path.join(ROOTDIR_DATASET_ANOMALY, "20220811_collisions_timestamp.xlsx"))
+    collisions = pd.read_excel(os.path.join(ROOTDIR_DATASET, "20220811_collisions_timestamp.xlsx"))
     collisions['Timestamp'] = collisions['Timestamp'] - pd.to_timedelta(2, 'h')
 
     start_col = collisions[collisions['Inizio/fine'] == "i"][['Timestamp']].rename(columns={'Timestamp': 'start'})
@@ -57,7 +55,7 @@ def read_folder_collisions(dataset_folder, frequency):
 
     df_collision = pd.concat([start_col, end_col], axis=1)
     
-    filepath_csv_test = [os.path.join(ROOTDIR_DATASET_ANOMALY, f"rec{r}_collision_20220811_rbtc_{1/frequency}s.csv") for r in [1, 5]]
+    filepath_csv_test = [os.path.join(ROOTDIR_DATASET, f"rec{r}_collision_20220811_rbtc_{1/frequency}s.csv") for r in [1, 5]]
     dfs_test = [pd.read_csv(filepath_csv, sep=";") for filepath_csv in filepath_csv_test]
     df_test = pd.concat(dfs_test)
 
