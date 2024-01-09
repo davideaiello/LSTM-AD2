@@ -7,6 +7,7 @@ import dataset
 from model import LSTMAD
 from tqdm import tqdm
 from dataset import return_dataloader
+from sklearn import metrics
 
 args = parser.parse_arguments()   
 
