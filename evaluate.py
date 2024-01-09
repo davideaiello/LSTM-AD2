@@ -93,7 +93,7 @@ def compute_metrics(anomaly_scores_norm, df_test, df_collision, tot_anomalies, t
         logging.info(f"AUC-ROC: {auc_roc}")
         logging.info(f"AUC-PR: {auc_pr}")
         logging.info(f"AUC-PtRt: {auc_ptrt}")
-        return sens, fpr, f0_1_max
+        return sens, fpr, th_f1_max
     else:
         df_anomaly = df_test.loc[np.array(anomaly_scores_norm <= th)]
         tp = 0                                                          # true positive per quella threshold
@@ -198,6 +198,7 @@ def evaluation(model, pipeline):
         fpr, tpr, _ = compute_metrics(anomaly_scores_norm, df_test, df_collision, tot_anomalies)
         plt.title("Roc Curve")
         plt.plot(fpr, tpr)
+        plt.savefig("Roc Curve.png")
         plt.show()
     
 if args.resume == True:
