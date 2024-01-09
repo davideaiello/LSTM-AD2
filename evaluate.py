@@ -123,7 +123,7 @@ def compute_metrics(anomaly_scores_norm, df_test, df_collision, tot_anomalies, t
         logging.info(f"f1: {f1} at th: {th} for the test set")
         logging.info(f"f0.1: {f0_1} at th: {th} for the test set")
     
-def plot_hist(anomaly_scores_norm, df_collision, df):
+def plot_hist(anomaly_scores_norm, df_collision, df, plot_filename):
     logging.info(f"Counting the total number of anomalies...")
     tot_anomalies = 0
     index_anomaly = []
@@ -148,6 +148,8 @@ def plot_hist(anomaly_scores_norm, df_collision, df):
     plt.legend(loc='upper right')
     plt.title('Distribution')
     plt.show()
+    plot_filename = f"{plot_filename}.png"
+    plt.savefig(plot_filename)
     return tot_anomalies
 
 def compute_anomaly_scores(model, dataloader, d):
@@ -179,19 +181,19 @@ def evaluation(model, pipeline):
 
         anomaly_scores_norm = compute_anomaly_scores(model, DataLoader_val, X_collisions.shape[1])
         df_val = df_val[-anomaly_scores_norm.shape[0]:] 
-        tot_anomalies = plot_hist(anomaly_scores_norm, df_collision, df_val)
+        tot_anomalies = plot_hist(anomaly_scores_norm, df_collision, df_val, 'plot_hist_val')
         _, _, th = compute_metrics(anomaly_scores_norm, df_val, df_collision, tot_anomalies)
         
         anomaly_scores_norm = compute_anomaly_scores(model, Dataloader_collisions, X_collisions.shape[1])
         df_col = df_col[-anomaly_scores_norm.shape[0]:] 
-        tot_anomalies = plot_hist(anomaly_scores_norm, df_collision, df_col)
+        tot_anomalies = plot_hist(anomaly_scores_norm, df_collision, df_col, 'plot_hist_test')
         logging.info(f"Computing metrics on test set") 
         compute_metrics(anomaly_scores_norm, df_col, df_collision, tot_anomalies, th)
     else:
         Dataloader_collisions = return_dataloader(X_collisions) 
         anomaly_scores_norm = compute_anomaly_scores(model, Dataloader_collisions, X_collisions.shape[1])
         df_test = df_test[-anomaly_scores_norm.shape[0]:] 
-        tot_anomalies = plot_hist(anomaly_scores_norm, df_collision, df_test)
+        tot_anomalies = plot_hist(anomaly_scores_norm, df_collision, df_test, 'plot_hist_test')
         logging.info(f"Computing metrics on test set") 
         fpr, tpr, _ = compute_metrics(anomaly_scores_norm, df_test, df_collision, tot_anomalies)
         plt.title("Roc Curve")
