@@ -100,8 +100,8 @@ def split_data(ts, split=0.9, df_test=None):
     split_at = int(len(ts) *split)
     train_ts = ts[:split_at]
     valid_ts = ts[split_at:]
-    train_ds = TimeSeries(train_ts, window_length=args.window_size, prediction_length=args.prediction_length)
-    valid_ds = TimeSeries(valid_ts, window_length=args.window_size, prediction_length=args.prediction_length)
+    train_ds = TimeSeries_train_val(train_ts, window_length=args.window_size, prediction_length=args.prediction_length)
+    valid_ds = TimeSeries_estimate_eval(valid_ts, window_length=args.window_size, prediction_length=args.prediction_length)
     if df_test is not None:
         df_col = df_test.iloc[:split_at]
         df_val = df_test.iloc[split_at:]
@@ -110,10 +110,26 @@ def split_data(ts, split=0.9, df_test=None):
         return DataLoader(train_ds, batch_size=args.batch_size), DataLoader(valid_ds, batch_size=args.infer_batch_size)
 
 def return_dataloader(ts):
-    ds = TimeSeries(ts, window_length=args.window_size, prediction_length=args.prediction_length)
+    ds = TimeSeries_estimate_eval(ts, window_length=args.window_size, prediction_length=args.prediction_length)
     return DataLoader(ds, batch_size=args.infer_batch_size)
 
-class TimeSeries(Dataset):
+class TimeSeries_train_val(Dataset):
+    def __init__(self, X, window_length, prediction_length):
+        self.X = torch.from_numpy(X).float()
+        self.window_length = window_length
+        self.l = prediction_length
+
+    def __len__(self):
+        return self.X.shape[0] - (self.window_length - 1) - self.l
+
+    def __getitem__(self, index):
+        end_idx = index + self.window_length
+        x = self.X[index:end_idx]
+        y = self.X[end_idx:end_idx+self.l, :]
+        return x, y
+    
+    
+class TimeSeries_estimate_eval(Dataset):
     def __init__(self, X, window_length, prediction_length):
         self.X = torch.from_numpy(X).float()
         self.window_length = window_length
@@ -131,6 +147,7 @@ class TimeSeries(Dataset):
         y = self.X[end_idx + self.l]
         y = y.repeat(self.l)
         return x, y
+    
 
     
 
