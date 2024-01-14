@@ -8,6 +8,7 @@ from model import LSTMAD
 from tqdm import tqdm
 from dataset import return_dataloader
 from sklearn import metrics
+import pickle
 
 args = parser.parse_arguments()   
 
@@ -29,7 +30,7 @@ def compute_auc_prrt(sens, prec, ths):
         auc += 0.5 * (prec[i] + prec[i-1]) * (sens[i] - sens[i-1]) * (ths[i] - ths[i-1])
     return auc
 
-def compute_metrics(anomaly_scores_norm, df_test, df_collision, tot_anomalies, th=None):
+def compute_metrics(anomaly_scores_norm, df_test, df_collision, tot_anomalies, y_true, th=None):
     roc = list()
     sens = list()           # recalls o tpr
     spec = list()
@@ -284,10 +285,16 @@ def evaluation(model, pipeline):
         anomaly_scores_norm = compute_anomaly_scores(model, Dataloader_collisions, X_collisions.shape[1])
         df_test = df_test[-anomaly_scores_norm.shape[0]:] 
         tot_anomalies, y_true = plot_hist(anomaly_scores_norm, df_collision, df_test, 'plot_hist_test')
+        anomaly_score = {
+            'anomaly_scores_norm' : anomaly_scores_norm,
+            'true_labels' : y_true
+        }
+        with open('anomaly_score.pickle', 'wb') as handle:
+            pickle.dump(anomaly_score, handle, protocol=pickle.HIGHEST_PROTOCOL)
         logging.info(f"Computing metrics on test set") 
-        metrics = compute_metrics_pak(anomaly_scores_norm, y_true, pa=True, interval=10, k=0)
+        # metrics = compute_metrics_pak(anomaly_scores_norm, y_true, pa=True, interval=10, k=0)
         logging.info(f"compute pak metrics = {metrics}") 
-        fpr, tpr, _ = compute_metrics(anomaly_scores_norm, df_test, df_collision, tot_anomalies)
+        fpr, tpr, _ = compute_metrics(anomaly_scores_norm, df_test, df_collision, tot_anomalies, y_true)
         plt.title("Roc Curve")
         plt.plot(fpr, tpr, color="r")
         plt.xlabel('FPR')
@@ -317,3 +324,15 @@ if args.resume == True:
 
 
 
+# 'best_f1_wo_pa': 0.24999999999971542, 
+# 'best_precision_wo_pa': 0.1509321223709369,
+# 'best_recall_wo_pa': 0.7275345622119815, 
+# 'prauc_wo_pa': 0.11567621818784538,
+# 'auc_wo_pa': 0.793240587099948,
+# 'raw_f1_w_pa': 0.32825943084050296,
+# 'raw_precision_w_pa': 0.19635787806809185,
+# 'raw_recall_w_pa': 1.0,
+# 'best_f1_w_pa': 0.5725699067909454,
+# 'best_f1_th_w_pa': 0.24098137,
+# 'best_precision_w_pa': 0.4274353876739563,
+# 'best_recall_w_pa': 0.8669354838709677,
