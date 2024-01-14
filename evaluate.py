@@ -45,19 +45,18 @@ def compute_metrics(anomaly_scores_norm, df_test, df_collision, y_true, th=None)
     ths = np.arange(0, 1, step)
     if th is None:
         for threshold in tqdm(ths):
-            df_anomaly = df_test.loc[np.array(anomaly_scores_norm > threshold)]
-            print(df_anomaly.shape)
+            anomalies_pred = anomaly_scores_norm > threshold
             tp = 0                                                          # true positive per quella threshold
             anomaly_indexes = list()
-            for index, _ in df_anomaly.iterrows():
-                if y_true[index]:
+            for index, anomaly_pred in enumerate(anomalies_pred):
+                if y_true[index] and anomaly_pred:
                     anomaly_indexes.append(index)
                     tp += 1
-    
+
             cm_anomaly = np.zeros((2,2))
             n_sample = len(df_test)
             n_not_collision = n_sample - tot_anomalies
-            n_detected = len(df_anomaly)
+            n_detected = anomalies_pred.sum()
 
             fp = n_detected - tp
             fn = tot_anomalies - tp
