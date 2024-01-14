@@ -41,7 +41,7 @@ def compute_metrics(anomaly_scores_norm, df_test, df_collision, y_true, th=None)
     cm_list = list()
     anomlay_indexes_dict = dict()
     acc_with_err = list()
-    step = 0.1
+    step = 0.01
     ths = np.arange(0, 1, step)
     if th is None:
         for threshold in tqdm(ths):
