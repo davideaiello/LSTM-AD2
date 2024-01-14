@@ -46,6 +46,7 @@ def compute_metrics(anomaly_scores_norm, df_test, df_collision, y_true, th=None)
     if th is None:
         for threshold in tqdm(ths):
             df_anomaly = df_test.loc[np.array(anomaly_scores_norm > threshold)]
+            print(df_anomaly.shape)
             tp = 0                                                          # true positive per quella threshold
             anomaly_indexes = list()
             for index, _ in df_anomaly.iterrows():
@@ -273,14 +274,14 @@ def evaluation(model, pipeline):
         
         anomaly_scores_norm = compute_anomaly_scores(model, Dataloader_collisions, X_collisions.shape[1])
         df_col = df_col[-anomaly_scores_norm.shape[0]:] 
-        tot_anomalies = plot_hist(anomaly_scores_norm, df_collision, df_col, 'plot_hist_test')
+        y_true = plot_hist(anomaly_scores_norm, df_collision, df_col, 'plot_hist_test')
         logging.info(f"Computing metrics on test set") 
-        compute_metrics(anomaly_scores_norm, df_col, df_collision, tot_anomalies, th)
+        compute_metrics(anomaly_scores_norm, df_col, df_collision, y_true, th)
     else:
         Dataloader_collisions = return_dataloader(X_collisions) 
         anomaly_scores_norm = compute_anomaly_scores(model, Dataloader_collisions, X_collisions.shape[1])
         df_test = df_test[-anomaly_scores_norm.shape[0]:] 
-        tot_anomalies, y_true = plot_hist(anomaly_scores_norm, df_collision, df_test, 'plot_hist_test')
+        y_true = plot_hist(anomaly_scores_norm, df_collision, df_test, 'plot_hist_test')
         anomaly_score = {
             'anomaly_scores_norm' : anomaly_scores_norm,
             'true_labels' : y_true
@@ -290,7 +291,7 @@ def evaluation(model, pipeline):
         logging.info(f"Computing metrics on test set") 
         # metrics = compute_metrics_pak(anomaly_scores_norm, y_true, pa=True, interval=10, k=0)
         # logging.info(f"compute pak metrics = {metrics}") 
-        fpr, tpr, _ = compute_metrics(anomaly_scores_norm, df_test, df_collision, tot_anomalies, y_true)
+        fpr, tpr, _ = compute_metrics(anomaly_scores_norm, df_test, df_collision, y_true)
         plt.title("Roc Curve")
         plt.plot(fpr, tpr, color="r")
         plt.xlabel('FPR')
