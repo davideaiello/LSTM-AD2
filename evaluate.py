@@ -30,8 +30,8 @@ def compute_auc_prrt(sens, prec, ths):
         auc += 0.5 * (prec[i] + prec[i-1]) * (sens[i] - sens[i-1]) * (ths[i] - ths[i-1])
     return auc
 
-def compute_metrics(anomaly_scores_norm, df_test, df_collision, tot_anomalies, y_true, th=None):
-    roc = list()
+def compute_metrics(anomaly_scores_norm, df_test, df_collision, y_true, th=None):
+    tot_anomalies = y_true.sum()
     sens = list()           # recalls o tpr
     spec = list()
     fpr = list()
@@ -48,11 +48,10 @@ def compute_metrics(anomaly_scores_norm, df_test, df_collision, tot_anomalies, y
             df_anomaly = df_test.loc[np.array(anomaly_scores_norm > threshold)]
             tp = 0                                                          # true positive per quella threshold
             anomaly_indexes = list()
-            for index, row in df_anomaly.iterrows():
-                for _, collision_row in df_collision.iterrows():
-                    if (row['time'] >= collision_row['start']) and (row['time'] <= collision_row['end']):
-                        anomaly_indexes.append(index)
-                        tp += 1
+            for index, _ in df_anomaly.iterrows():
+                if y_true[index]:
+                    anomaly_indexes.append(index)
+                    tp += 1
     
             cm_anomaly = np.zeros((2,2))
             n_sample = len(df_test)
@@ -100,11 +99,10 @@ def compute_metrics(anomaly_scores_norm, df_test, df_collision, tot_anomalies, y
         df_anomaly = df_test.loc[np.array(anomaly_scores_norm > th)]
         tp = 0                                                          # true positive per quella threshold
         anomaly_indexes = list()
-        for index, row in df_anomaly.iterrows():
-            for _, collision_row in df_collision.iterrows():
-                if (row['time'] >= collision_row['start']) and (row['time'] <= collision_row['end']):
-                    anomaly_indexes.append(index)
-                    tp += 1
+        for index, _ in df_anomaly.iterrows():
+            if y_true[index]:
+                anomaly_indexes.append(index)
+                tp += 1
 
         cm_anomaly = np.zeros((2,2))
         n_sample = len(df_test)
@@ -127,18 +125,16 @@ def compute_metrics(anomaly_scores_norm, df_test, df_collision, tot_anomalies, y
     
 def plot_hist(anomaly_scores_norm, df_collision, df, plot_filename):
     logging.info(f"Counting the total number of anomalies...")
-    tot_anomalies = 0
     index_anomaly = []
     idx = 0
     for _, row in df.iterrows():
         for _, collision_row in df_collision.iterrows():
             if (row['time'] >= collision_row['start']) and (row['time'] <= collision_row['end']):
-                tot_anomalies += 1
                 index_anomaly.append(idx)
         idx += 1
-    logging.info(f"Anomalies detected: {tot_anomalies}")
     y_true = np.zeros_like(anomaly_scores_norm)
     y_true[index_anomaly] = 1
+    logging.info(f"Anomalies detected: {int(y_true.sum())}")
     anomaly_values = anomaly_scores_norm[index_anomaly]
     normal_values = np.delete(anomaly_scores_norm, index_anomaly)
 
@@ -152,7 +148,7 @@ def plot_hist(anomaly_scores_norm, df_collision, df, plot_filename):
     plot_filename = f"{plot_filename}.png"
     plt.savefig(plot_filename)
     plt.show()
-    return tot_anomalies, y_true
+    return y_true
 
 def compute_metrics_pak(scores, targets, pa=True, interval=10, k=0):
     """
@@ -293,7 +289,7 @@ def evaluation(model, pipeline):
             pickle.dump(anomaly_score, handle, protocol=pickle.HIGHEST_PROTOCOL)
         logging.info(f"Computing metrics on test set") 
         # metrics = compute_metrics_pak(anomaly_scores_norm, y_true, pa=True, interval=10, k=0)
-        logging.info(f"compute pak metrics = {metrics}") 
+        # logging.info(f"compute pak metrics = {metrics}") 
         fpr, tpr, _ = compute_metrics(anomaly_scores_norm, df_test, df_collision, tot_anomalies, y_true)
         plt.title("Roc Curve")
         plt.plot(fpr, tpr, color="r")
