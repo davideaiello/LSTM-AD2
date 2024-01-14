@@ -13,7 +13,7 @@ import pickle
 args = parser.parse_arguments()   
 
 
-def compute_metrics(anomaly_scores_norm, df_test, y_true, anomaly_scores, th=None):
+def compute_metrics(anomaly_scores_norm, df_test, y_true, th=None):
     tot_anomalies = y_true.sum()
     sens = list()           # recalls o tpr
     spec = list()
@@ -71,19 +71,15 @@ def compute_metrics(anomaly_scores_norm, df_test, y_true, anomaly_scores, th=Non
         th_f0_1_max = max_index_f0_1 * step
         logging.info(f"f1: {f1_max} at th: {th_f1_max}")
         logging.info(f"f0.1: {f0_1_max} at th: {th_f0_1_max}")
-        auc_roc = np.trapz(fpr, sens)                # Area Under the Receiver Operating Characteristic
-        auc_pr = np.trapz(sens, prec)                # Area Under the Precision-Recall Curve
-        logging.info(f"AUC-ROC: {auc_roc}")
-        logging.info(f"AUC-PR: {auc_pr}")
-        logging.info(f"AUC-ROC sklearn: {metrics.roc_auc_score(y_true, anomaly_scores_norm)}")
-        logging.info(f"AUC-ROC score_non_norm: {metrics.roc_auc_score(y_true, anomaly_scores)}")
+        logging.info(f"AUC-PR: {metrics.average_precision_score(y_true, anomaly_scores_norm)}")
+        logging.info(f"AUC-ROC: {metrics.roc_auc_score(y_true, anomaly_scores_norm)}")
         return sens, fpr, th_f1_max
     else:
         df_anomaly = df_test.loc[np.array(anomaly_scores_norm > th)]
         tp = 0                                                          # true positive per quella threshold
         anomaly_indexes = list()
-        for index, _ in df_anomaly.iterrows():
-            if y_true[index]:
+        for index, anomaly_pred in enumerate(anomalies_pred):
+            if y_true[index] and anomaly_pred:
                 anomaly_indexes.append(index)
                 tp += 1
 
@@ -239,7 +235,7 @@ def compute_anomaly_scores(model, dataloader, d):
     errors = torch.cat(errors)
     anomaly_scores = model.anomaly_scorer.forward(errors.mean(dim=1))
     anomaly_scores_norm = (anomaly_scores - np.min(anomaly_scores)) / (np.max(anomaly_scores) - np.min(anomaly_scores))
-    return anomaly_scores_norm, anomaly_scores
+    return anomaly_scores_norm
 
 def evaluation(model, pipeline):
     df_collision, X_collisions, df_test = dataset.read_folder_collisions(args.dataset_folder, args.frequency)
@@ -261,7 +257,7 @@ def evaluation(model, pipeline):
         compute_metrics(anomaly_scores_norm, df_col, y_true, th)
     else:
         Dataloader_collisions = return_dataloader(X_collisions) 
-        anomaly_scores_norm, anomaly_scores = compute_anomaly_scores(model, Dataloader_collisions, X_collisions.shape[1])
+        anomaly_scores_norm = compute_anomaly_scores(model, Dataloader_collisions, X_collisions.shape[1])
         df_test = df_test[-anomaly_scores_norm.shape[0]:] 
         y_true = plot_hist(anomaly_scores_norm, df_collision, df_test, 'plot_hist_test')
         anomaly_score = {
@@ -273,7 +269,7 @@ def evaluation(model, pipeline):
         logging.info(f"Computing metrics on test set") 
         # metrics = compute_metrics_pak(anomaly_scores_norm, y_true, pa=True, interval=10, k=0)
         # logging.info(f"compute pak metrics = {metrics}") 
-        fpr, tpr, _ = compute_metrics(anomaly_scores_norm, df_test, y_true, anomaly_scores)
+        fpr, tpr, _ = compute_metrics(anomaly_scores_norm, df_test, y_true)
         plt.title("Roc Curve")
         plt.plot(fpr, tpr, color="r")
         plt.xlabel('FPR')
