@@ -61,9 +61,11 @@ for x, y in tqdm(DataLoader_val):
     if args.device == 'cuda':
         x, y = x.cuda(), y.cuda()
     for p in range(args.prediction_length):
-        x_w = x[:, p]
-        y_p = model.forward(x_w)
-        y_p = y_p[:, y_p.shape[1]-(X_train.shape[1])*(p+1):y_p.shape[1]-(X_train.shape[1])*p]
+        x_w = x[:, p]                           # per ogni sample prendo ogni finestra possibile
+        y_p = model.forward(x_w)                # calcolo la y di ongi finestra (che avrà una lunghezza di l samples)
+        y_p = y_p[:, y_p.shape[1]-(X_train.shape[1])*(p+1):y_p.shape[1]-(X_train.shape[1])*p]       # per ongi y, prendo solo il sample di 
+                                                                                                    # posizione l-esima relativo all'l-esima 
+                                                                                                    # finestra
         y_preds.append(y_p)
     y_preds = torch.cat(y_preds, dim=1)
     e = torch.abs(y - y_preds)

@@ -142,7 +142,7 @@ class TimeSeries_estimate_eval(Dataset):
         end_idx = index + self.window_length
         x = []
         for p in range(self.l):
-            x.append(self.X[index + p : p + end_idx])
+            x.append(self.X[index + p : p + end_idx])                   # qui prende tutte le finestre w
         x = torch.cat([torch.unsqueeze(item, 0) for item in x], dim=0) # concatena mettendo la nuova dimensione, self.prediction_length, davanti
         y = self.X[end_idx + self.l]
         y = y.repeat(self.l)
