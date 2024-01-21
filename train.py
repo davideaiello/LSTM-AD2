@@ -1,4 +1,4 @@
-import parser
+import arguments
 import numpy as np
 import torch
 import torch.nn as nn
@@ -6,14 +6,13 @@ import torch.nn.functional as F
 from torch.optim import Adam
 import logging
 from tqdm import tqdm
-
 import evaluate
 import dataset
 from model import LSTMAD
 
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 
-args = parser.parse_arguments()   
+args = arguments.parse_arguments()   
 logging.info(f"Arguments: {vars(args)}")      
 
 X_train = dataset.read_folder_normal(args.dataset_folder, args.frequency)

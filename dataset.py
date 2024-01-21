@@ -5,23 +5,12 @@ from torch.utils.data import Dataset
 from sklearn.feature_selection import VarianceThreshold
 from sklearn import preprocessing
 from sklearn.pipeline import Pipeline
-import parser
+import arguments
 import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 
-# ROOTDIR_DATASET_NORMAL = "Kuka_v1/normal"
-# ROOTDIR_DATASET_ANOMALY = "Kuka_v1/collisions"
-
-args = parser.parse_arguments()   
-
-
-# def get_preprocessing_pipeline():
-#     pipeline = Pipeline([
-#     ('scaler', preprocessing.MinMaxScaler()),
-#     ('selector', VarianceThreshold(threshold=0.1))
-#     ])
-#     return pipeline
+args = arguments.parse_arguments()   
 
 def read_folder_normal(dataset_folder, frequency):
     ROOTDIR_DATASET = dataset_folder
@@ -33,6 +22,7 @@ def read_folder_normal(dataset_folder, frequency):
     df = df.sort_index(axis=1)
     df.index = pd.to_datetime(df.time.astype('datetime64[ms]'), format="%Y-%m-%dT%H:%M:%S.%f")
 
+
     columns_to_drop = [column for column in df.columns if "Abb" in column or "Temperature" in column]
     df.drop(["machine_nameKuka Robot_export_active_energy",                                             
             "machine_nameKuka Robot_import_reactive_energy"] + columns_to_drop, axis=1, inplace=True)
@@ -43,8 +33,7 @@ def read_folder_normal(dataset_folder, frequency):
 
 
 def read_folder_collisions(dataset_folder, frequency):
-    ROOTDIR_DATASET = dataset_folder
-    collisions = pd.read_excel(os.path.join(ROOTDIR_DATASET, "20220811_collisions_timestamp.xlsx"))
+    collisions = pd.read_excel(os.path.join(dataset_folder, "20220811_collisions_timestamp.xlsx"))
     collisions['Timestamp'] = collisions['Timestamp'] - pd.to_timedelta(2, 'h')
 
     start_col = collisions[collisions['Inizio/fine'] == "i"][['Timestamp']].rename(columns={'Timestamp': 'start'})
@@ -55,7 +44,7 @@ def read_folder_collisions(dataset_folder, frequency):
 
     df_collision = pd.concat([start_col, end_col], axis=1)
     
-    filepath_csv_test = [os.path.join(ROOTDIR_DATASET, f"rec{r}_collision_20220811_rbtc_{1/frequency}s.csv") for r in [1, 5]]
+    filepath_csv_test = [os.path.join(dataset_folder, f"rec{r}_collision_20220811_rbtc_{1/frequency}s.csv") for r in [1, 5]]
     dfs_test = [pd.read_csv(filepath_csv, sep=";") for filepath_csv in filepath_csv_test]
     df_test = pd.concat(dfs_test)
 
@@ -76,23 +65,10 @@ def preprocess_data(data, pipeline=None, train=True):
             ('scaler', preprocessing.MinMaxScaler()),
             ('selector', VarianceThreshold(threshold=0.001))
             ])
-        # scaler =  preprocessing.MinMaxScaler()
-        # X_train_MinMaxScaler = scaler.fit_transform(X_train)
-        # X_train_MinMaxScaler_df = pd.DataFrame(X_train_MinMaxScaler)
-        # selector_variance = VarianceThreshold(threshold=0.001)    
-        # selector_variance.fit(X_train_MinMaxScaler_df)                 
-        # X_train_variance = pd.DataFrame(selector_variance.transform(X_train_MinMaxScaler_df),
-        #                                 columns=X_train_MinMaxScaler_df.columns.values[selector_variance.get_support()])
-        # X_train = X_train_variance.to_numpy()
         X_train_transformed = pipeline.fit_transform(X_train)
         return X_train_transformed, pipeline
     else:
         X_collisions = data
-        # X_collisions_norm = scaler.transform(X_collisions)
-        # X_collisions_norm = pd.DataFrame(X_collisions_norm)
-        # X_collisions = pd.DataFrame(selector_variance.transform(X_collisions_norm),
-        #                                 columns=X_collisions_norm.columns.values[selector_variance.get_support()])
-        # X_collisions = X_collisions.to_numpy()
         X_collisions_transformed = pipeline.transform(X_collisions)
         return X_collisions_transformed
 

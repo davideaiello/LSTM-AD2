@@ -1,4 +1,4 @@
-import parser
+import arguments
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
@@ -10,7 +10,7 @@ from dataset import return_dataloader
 from sklearn import metrics
 import pickle
 
-args = parser.parse_arguments()   
+args = arguments.parse_arguments()   
 
 
 def compute_metrics(anomaly_scores_norm, df_test, y_true, th=None):
@@ -232,6 +232,7 @@ def compute_anomaly_scores(model, dataloader, d):
         y_preds = torch.cat(y_preds, dim=1)
         e = torch.abs(y - y_preds)
         errors.append(e)
+        del x_w, y_preds, e
     errors = torch.cat(errors)
     anomaly_scores = model.anomaly_scorer.forward(errors.mean(dim=1))
     anomaly_scores_norm = (anomaly_scores - np.min(anomaly_scores)) / (np.max(anomaly_scores) - np.min(anomaly_scores))
