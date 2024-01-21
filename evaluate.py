@@ -102,6 +102,21 @@ def compute_metrics(anomaly_scores_norm, df_test, y_true, th=None):
         logging.info(f"f1: {f1} at th: {th} for the test set")
         logging.info(f"f0.1: {f0_1} at th: {th} for the test set")
     
+def compute_f1_pa_k(y_true, anomaly_scores_norm):
+    threshold = .08
+    f1pa_k = [metrics.f1_score(y_true, pak(anomaly_scores_norm, y_true, threshold, k=k)) for k in range(0, 101)]
+    f1pa_k = np.array(f1pa_k)
+    area_trapz = np.trapz(f1pa_k, dx=0.01)
+    plt.plot(range(len(f1pa_k)), f1pa_k, label=f'LSTM-AD (AUC: {area_trapz:.2f})')
+
+
+    plt.fill_between(range(0, 101), f1pa_k, alpha=0.3)
+    plt.xlabel('K')
+    plt.ylabel('F1$PA_{\%K}$')
+    plt.legend()
+    plt.show()
+    logging.info("LSTM-AD (AUC: {area_trapz:.2f})")
+
 def plot_hist(anomaly_scores_norm, df_collision, df, plot_filename):
     logging.info(f"Counting the total number of anomalies...")
     index_anomaly = []
@@ -129,62 +144,7 @@ def plot_hist(anomaly_scores_norm, df_collision, df, plot_filename):
     plt.show()
     return y_true
 
-def compute_metrics_pak(scores, targets, pa=True, interval=10, k=0):
-    """
-    :param scores: list or np.array or tensor, anomaly score
-    :param targets: list or np.array or tensor, target labels
-    :param pa: True/False
-    :param interval: threshold search interval
-    :param k: PA%K threshold
-    :return: results dictionary
-    """
-    assert len(scores) == len(targets)  # check if the length of scores and labels are equal
 
-    results = {}
-
-    try:
-        scores = np.asarray(scores)     # convert scores and targets in numpy arrays
-        targets = np.asarray(targets)
-    except TypeError:
-        scores = np.asarray(scores.cpu())
-        targets = np.asarray(targets.cpu())
-
-    precision, recall, threshold = metrics.precision_recall_curve(targets, scores)  # compute precision, recall and F1 score using the precision-recall curve
-    f1_score = 2 * precision * recall / (precision + recall + 1e-12)  # compute f1 score
-
-    # Compute metrics without Point-Adjustment
-    results['best_f1_wo_pa'] = np.max(f1_score)                     
-    results['best_precision_wo_pa'] = precision[np.argmax(f1_score)]
-    results['best_recall_wo_pa'] = recall[np.argmax(f1_score)]
-    results['prauc_wo_pa'] = metrics.average_precision_score(targets, scores)
-    results['auc_wo_pa'] = metrics.roc_auc_score(targets, scores)
-
-    # if PA is true compute metrics with point adjustment
-    if pa:
-        # find F1 score with optimal threshold of best_f1_wo_pa = best f1 without point_adjustment
-        pa_scores = pak(scores, targets, threshold[np.argmax(f1_score)], k)
-        results['raw_f1_w_pa'] = metrics.f1_score(targets, pa_scores)
-        results['raw_precision_w_pa'] = metrics.precision_score(targets, pa_scores)
-        results['raw_recall_w_pa'] = metrics.recall_score(targets, pa_scores)
-
-        # find best F1 score with varying thresholds
-        if len(scores) // interval < 1:   # check if the legnth of scores divided by interval is less than 1
-            ths = threshold   # use original threshold
-        else:
-            ths = [threshold[interval*i] for i in range(len(threshold)//interval)]  # create a list of ths containing thresholds at regular intervals determined by the interval parameter
-
-        # iterate through the thresholds and compute F1 scores with point adjustment for each threshold
-        pa_f1_scores = [metrics.f1_score(targets, pak(scores, targets, th, k)) for th in tqdm(ths)]
-        pa_f1_scores = np.asarray(pa_f1_scores)
-        results['best_f1_w_pa'] = np.max(pa_f1_scores)
-        results['best_f1_th_w_pa'] = ths[np.argmax(pa_f1_scores)]
-        
-        pa_scores = pak(scores, targets, ths[np.argmax(pa_f1_scores)], k)
-        results['best_precision_w_pa'] = metrics.precision_score(targets, pa_scores)
-        results['best_recall_w_pa'] = metrics.recall_score(targets, pa_scores)
-        results['pa_f1_scores'] = pa_f1_scores
-
-    return results
 
 def pak(scores, targets, thres, k=20):
     """
@@ -238,6 +198,8 @@ def compute_anomaly_scores(model, dataloader, d):
     anomaly_scores_norm = (anomaly_scores - np.min(anomaly_scores)) / (np.max(anomaly_scores) - np.min(anomaly_scores))
     return anomaly_scores_norm
 
+
+
 def evaluation(model, pipeline):
     df_collision, X_collisions, df_test = dataset.read_folder_collisions(args.dataset_folder, args.frequency)
     X_collisions = dataset.preprocess_data(X_collisions, pipeline, train=False)
@@ -268,8 +230,6 @@ def evaluation(model, pipeline):
         with open('anomaly_score.pickle', 'wb') as handle:
             pickle.dump(anomaly_score, handle, protocol=pickle.HIGHEST_PROTOCOL)
         logging.info(f"Computing metrics on test set") 
-        # metrics = compute_metrics_pak(anomaly_scores_norm, y_true, pa=True, interval=10, k=0)
-        # logging.info(f"compute pak metrics = {metrics}") 
         fpr, tpr, _ = compute_metrics(anomaly_scores_norm, df_test, y_true)
         plt.title("Roc Curve")
         plt.plot(fpr, tpr, color="r")
@@ -277,6 +237,8 @@ def evaluation(model, pipeline):
         plt.ylabel('TPR')
         plt.savefig("Roc Curve.png")
         plt.show()
+        compute_f1_pa_k(y_true, anomaly_scores_norm)
+
     
 if args.resume == True:
     logging.basicConfig(level=logging.INFO, format='%(message)s')
