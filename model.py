@@ -31,18 +31,15 @@ class LSTMAD(nn.Module):
         super().__init__()
 
         self.d = input_size
-        self.d2 = 30
         self.lstm_layers = lstm_layers
         self.window_size = window_size
         self.l = prediction_window_size
 
-        self.input_layer = nn.Linear(in_features=self.d, out_features=self.d2)
         self.lstms = nn.LSTM(input_size=self.d, hidden_size=self.d * self.l, batch_first=True, num_layers=lstm_layers)
         self.dense = nn.Linear(in_features=self.window_size * self.d * self.l, out_features=self.d * self.l)
         self.anomaly_scorer = AnomalyScorer()
 
     def forward(self, x):
-        x = self.input_layer(x)
         x, _ = self.lstms(x)
         # x would be (b, w_l, hidden_size) -> (b, w_l, d*l)
         x = x.reshape(-1, self.window_size * self.d * self.l)

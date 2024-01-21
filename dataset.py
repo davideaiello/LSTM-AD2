@@ -15,13 +15,11 @@ args = arguments.parse_arguments()
 def read_folder_normal(dataset_folder, frequency):
     ROOTDIR_DATASET = dataset_folder
     filepaths_csv = [os.path.join(ROOTDIR_DATASET, f"rec{r}_20220811_rbtc_{1/frequency}s.csv") for r in [0, 2, 3, 4]]
-    # filepaths_meta = [os.path.join(ROOTDIR_DATASET_NORMAL, f"rec{r}_20220811_rbtc_{1/frequency}s.metadata") for r in [0, 2, 3, 4]]
 
     dfs = [pd.read_csv(filepath_csv, sep=";") for filepath_csv in filepaths_csv]
     df = pd.concat(dfs)                           
     df = df.sort_index(axis=1)
     df.index = pd.to_datetime(df.time.astype('datetime64[ms]'), format="%Y-%m-%dT%H:%M:%S.%f")
-
 
     columns_to_drop = [column for column in df.columns if "Abb" in column or "Temperature" in column]
     df.drop(["machine_nameKuka Robot_export_active_energy",                                             
