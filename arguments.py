@@ -28,6 +28,8 @@ def parse_arguments():
                         help="path of the folder with train/val/test sets")
     parser.add_argument("--resume",  action='store_true',
                         help="resume model for test")
+    parser.add_argument("--scheduler", action='store_true',
+                        help="scheduler for learning rate")
     parser.add_argument("--model_path", type=str, default="models/model.pth",
                         help="path of the folder of the model to resume")
     

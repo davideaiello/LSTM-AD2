@@ -1,4 +1,5 @@
 import arguments
+from torch.optim.lr_scheduler import MultiStepLR
 import numpy as np
 import torch
 import torch.nn as nn
@@ -22,6 +23,8 @@ Dataloader_train, DataLoader_val = dataset.split_data(X_train, args.train_split)
 model = LSTMAD(X_train.shape[1], args.lstm_layers, args.window_size, args.prediction_length)
 
 optimizer = Adam(model.parameters(), lr=args.lr)
+if args.scheduler:
+    scheduler = MultiStepLR(optimizer, milestones=[3], gamma=0.1)
 
 if args.device == 'cuda':
     model = model.to('cuda')
@@ -40,6 +43,9 @@ for epoch in range(args.epochs_num):
         loss.backward()
         optimizer.step()
         epoch_losses = np.append(epoch_losses, loss.item())
+
+    if args.scheduler:
+        scheduler.step()
 
     model.eval()
     valid_losses = []

@@ -115,7 +115,7 @@ def compute_f1_pa_k(y_true, anomaly_scores_norm):
     plt.ylabel('F1$PA_{\%K}$')
     plt.legend()
     plt.show()
-    logging.info("LSTM-AD (AUC: {area_trapz:.2f})")
+    logging.info(f"LSTM-AD (AUC: {area_trapz:.2f})")
 
 def plot_hist(anomaly_scores_norm, df_collision, df, plot_filename):
     logging.info(f"Counting the total number of anomalies...")
