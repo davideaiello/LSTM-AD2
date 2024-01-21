@@ -24,7 +24,7 @@ model = LSTMAD(X_train.shape[1], args.lstm_layers, args.window_size, args.predic
 
 optimizer = Adam(model.parameters(), lr=args.lr)
 if args.scheduler:
-    scheduler = MultiStepLR(optimizer, milestones=[3], gamma=0.1)
+    scheduler = MultiStepLR(optimizer, milestones=[3], gamma=0.01)
 
 if args.device == 'cuda':
     model = model.to('cuda')
